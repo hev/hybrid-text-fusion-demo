@@ -222,7 +222,7 @@
     panel.style.display = '';
     const kv = (k, v) => '<div class="kv"><span>' + k + '</span><span>' + esc(String(v)) + '</span></div>';
     const fuzzy = (h.legs || 1) - 1;
-    let body = '<div class="cap">tokens · <a href="https://turbopuffer.com/docs/fts#tokenizers" target="_blank" rel="noopener">Turbopuffer tokenizer</a></div>';
+    let body = '<div class="cap">tokens · <a href="https://github.com/turbopuffer/alyze" target="_blank" rel="noopener">alyze tokenizer</a></div>';
     body += '<div>' + (h.tokens || []).map(t => '<span class="tok">' + esc(t) + '</span>').join('') + '</div>';
     body += '<div class="legs">' + h.legs + ' legs sent upstream: <b>1 BM25</b> over the full query + <b>' +
       fuzzy + ' fuzzy</b> (one per token), fused by RRF.</div>';

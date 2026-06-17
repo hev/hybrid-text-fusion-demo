@@ -105,7 +105,7 @@ deploys with working examples without re-running `ingest.py`.
   gzip-compresses large write bodies and the gateway does not yet decode them,
   so bulk ingest uses uncompressed JSON.)
 - **Query.** The UI posts `rank_by: ["content", "HybridText", "<your query>"]`.
-  The gateway [tokenizes the input](https://turbopuffer.com/docs/fts#tokenizers)
+  The gateway [tokenizes the input](https://github.com/turbopuffer/alyze)
   (UAX-29 word boundaries, lowercased, ≤15 tokens), builds the BM25 + per-token
   fuzzy legs, and returns the fused `rows` plus a `hybrid` echo describing the
   expansion.
