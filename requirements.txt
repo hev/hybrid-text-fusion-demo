@@ -1,0 +1,5 @@
+# SciFact hybrid_text_fusion demo
+datasets>=2.18          # download the BEIR/SciFact corpus from Hugging Face
+httpx>=0.27             # talk to the Turbopuffer-compatible gateway over plain HTTP
+fastapi>=0.110          # search UI backend
+uvicorn>=0.29           # ASGI server

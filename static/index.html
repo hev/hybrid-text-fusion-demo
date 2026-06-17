@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SciFact · hybrid_text_fusion on Layer</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --card:#1b1f28; --line:#262b36;
+    --text:#e6e8ee; --muted:#9aa3b2; --accent:#6ea8fe; --good:#4ade80; --chip:#222836;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+  .wrap{max-width:1060px;margin:0 auto;padding:34px 20px 90px}
+  header h1{font-size:22px;margin:0 0 6px;font-weight:650}
+  header p{color:var(--muted);margin:0 0 22px;max-width:700px}
+  .search{display:flex;gap:8px}
+  .search input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:14px 16px;border-radius:10px;font-size:16px;outline:none}
+  .search input:focus{border-color:var(--accent)}
+  .search button{background:var(--accent);color:#0b1020;border:0;padding:0 22px;border-radius:10px;
+    font-weight:600;cursor:pointer;font-size:15px}
+  .hint{color:var(--muted);font-size:12.5px;margin:9px 2px 0}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 4px}
+  .chips .lbl{width:100%;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .chip{background:var(--chip);border:1px solid var(--line);color:var(--text);border-radius:999px;
+    padding:6px 13px;font-size:13px;cursor:pointer;max-width:440px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .chip:hover{border-color:var(--accent)}
+  .chip.typo{border-style:dashed;color:var(--muted)}
+  .layout{display:grid;grid-template-columns:1fr 290px;gap:22px;margin-top:26px;align-items:start}
+  @media(max-width:820px){.layout{grid-template-columns:1fr}}
+  .results .meta{color:var(--muted);font-size:13px;margin:0 0 12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+  .card h3{margin:0 0 6px;font-size:15px;font-weight:600;line-height:1.4}
+  .card .snip{color:var(--muted);font-size:13.5px;margin:0}
+  .card .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:9px}
+  .badge{font-size:11px;color:var(--good);border:1px solid var(--good);border-radius:6px;padding:1px 6px;font-weight:600}
+  .score{font-family:ui-monospace,monospace;color:var(--muted);font-size:12px}
+  mark{background:rgba(110,168,254,.22);color:inherit;border-radius:3px;padding:0 1px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;
+    position:sticky;top:20px}
+  .panel h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+  .panel .legs{font-size:12.5px;color:var(--muted);margin:10px 0 12px;line-height:1.5}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .kv:last-child{border-bottom:0}
+  .kv span:first-child{color:var(--muted)}
+  .kv span:last-child{font-family:ui-monospace,monospace}
+  .tok{display:inline-block;background:var(--chip);border:1px solid var(--line);border-radius:6px;
+    padding:2px 7px;margin:0 4px 4px 0;font-family:ui-monospace,monospace;font-size:12px}
+  .empty{color:var(--muted);padding:26px 0}
+  .err{color:#fca5a5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>SciFact &middot; <code>hybrid_text_fusion</code> on Layer</h1>
+    <p>One query string fans out into a full-input <b>BM25</b> leg plus one
+       <b>fuzzy</b> leg per token, fused by <b>reciprocal rank fusion</b> in the
+       Layer gateway — no embeddings. ~5,000 scientific abstracts from
+       <a href="https://huggingface.co/datasets/BeIR/scifact" target="_blank" rel="noopener">BEIR/SciFact</a>.
+       Try a query <i>with a typo</i>: the fuzzy legs still catch it.</p>
+  </header>
+
+  <div class="search">
+    <input id="q" placeholder="e.g. does vitamin D reduce the risk of cancer" autocomplete="off" autofocus>
+    <button id="go">Search</button>
+  </div>
+  <div class="hint" id="hint"></div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="layout">
+    <div class="results" id="results">
+      <div class="empty">Search the corpus, or pick a query above.</div>
+    </div>
+    <aside class="panel" id="panel" style="display:none">
+      <h2>Fusion inspector</h2>
+      <div id="panelBody"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  const qInput = document.getElementById('q');
+  const results = document.getElementById('results');
+  const panel = document.getElementById('panel');
+  const panelBody = document.getElementById('panelBody');
+  const chipsEl = document.getElementById('chips');
+  const hint = document.getElementById('hint');
+
+  let activeRelevant = null;   // Set of known-relevant doc ids for the current example query
+  let cfg = { namespace: '', field: 'content' };
+
+  const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+  function highlight(text, tokens) {
+    const out = esc(text);
+    if (!tokens || !tokens.length) return out;
+    const toks = [...tokens].sort((a, b) => b.length - a.length)
+      .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    return out.replace(new RegExp('(' + toks.join('|') + ')', 'ig'), '<mark>$1</mark>');
+  }
+
+  // Drop a letter from a longish word so we can demo fuzzy typo-tolerance.
+  function makeTypo(s) {
+    const words = s.split(/\s+/);
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i].replace(/[^a-z]/gi, '');
+      if (w.length >= 7) { words[i] = w.slice(0, 3) + w.slice(4); return words.join(' '); }
+    }
+    return s;
+  }
+
+  async function loadConfig() {
+    try { cfg = await (await fetch('/api/config')).json(); } catch (e) {}
+    hint.textContent = `namespace: ${cfg.namespace} · ranking field: ${cfg.field}`;
+  }
+
+  async function loadExamples() {
+    let ex = [];
+    try { ex = (await (await fetch('/api/examples')).json()).examples || []; } catch (e) {}
+    if (!ex.length) return;
+    chipsEl.innerHTML = '<div class="lbl">Real SciFact test queries — ✓ marks the known-relevant abstracts</div>';
+    ex.slice(0, 8).forEach(e => {
+      const c = document.createElement('button');
+      c.className = 'chip'; c.textContent = e.text; c.title = e.text;
+      c.onclick = () => { activeRelevant = new Set(e.relevant_doc_ids || []); qInput.value = e.text; run(); };
+      chipsEl.appendChild(c);
+    });
+    const base = ex[0].text, typo = makeTypo(base);
+    if (typo !== base) {
+      const c = document.createElement('button');
+      c.className = 'chip typo'; c.textContent = '🅣 ' + typo;
+      c.title = 'the first query, with a typo — fuzzy legs still find it';
+      c.onclick = () => { activeRelevant = new Set(ex[0].relevant_doc_ids || []); qInput.value = typo; run(); };
+      chipsEl.appendChild(c);
+    }
+  }
+
+  async function run() {
+    const query = qInput.value.trim();
+    if (!query) return;
+    results.innerHTML = '<div class="empty">Searching…</div>';
+    panel.style.display = 'none';
+    let data;
+    try {
+      const r = await fetch('/api/search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, top_k: 10 }),
+      });
+      if (!r.ok) { results.innerHTML = '<div class="empty err">' + esc('Error ' + r.status + ': ' + await r.text()) + '</div>'; return; }
+      data = await r.json();
+    } catch (e) {
+      results.innerHTML = '<div class="empty err">' + esc(String(e)) + '</div>'; return;
+    }
+    render(data);
+  }
+
+  function render(data) {
+    const rows = data.rows || [];
+    const h = data.hybrid;
+    const tokens = h ? h.tokens : [];
+
+    let meta = rows.length + ' result' + (rows.length === 1 ? '' : 's');
+    if (activeRelevant && activeRelevant.size) {
+      const hit = rows.filter(r => activeRelevant.has(String(r.id))).length;
+      meta += ` · ${hit}/${activeRelevant.size} known-relevant abstracts surfaced in top ${rows.length}`;
+    }
+
+    let html = '<p class="meta">' + esc(meta) + '</p>';
+    if (!rows.length) html += '<div class="empty">No matches.</div>';
+    rows.forEach(r => {
+      const rel = activeRelevant && activeRelevant.has(String(r.id));
+      const title = highlight(r.title || ('document ' + r.id), tokens);
+      const raw = r.text || '';
+      const snip = highlight(raw.slice(0, 280) + (raw.length > 280 ? '…' : ''), tokens);
+      // Unsharded HybridText passes Turbopuffer's RRF score through as `$dist`;
+      // the sharded path emits `$score`. Accept either.
+      const sv = r['$score'] != null ? r['$score'] : r['$dist'];
+      const score = sv != null ? Number(sv).toFixed(4) : '—';
+      html += '<div class="card">' +
+        '<h3>' + title + (rel ? ' <span class="badge">✓ relevant</span>' : '') + '</h3>' +
+        '<p class="snip">' + snip + '</p>' +
+        '<div class="row"><span class="score">id ' + esc(String(r.id)) + '</span>' +
+        '<span class="score">RRF ' + score + '</span></div>' +
+        '</div>';
+    });
+    results.innerHTML = html;
+    renderPanel(h);
+  }
+
+  function renderPanel(h) {
+    if (!h) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    const kv = (k, v) => '<div class="kv"><span>' + k + '</span><span>' + esc(String(v)) + '</span></div>';
+    const fuzzy = (h.legs || 1) - 1;
+    let body = '<div>' + (h.tokens || []).map(t => '<span class="tok">' + esc(t) + '</span>').join('') + '</div>';
+    body += '<div class="legs">' + h.legs + ' legs sent upstream: <b>1 BM25</b> over the full query + <b>' +
+      fuzzy + ' fuzzy</b> (one per token), fused by RRF.</div>';
+    body += kv('fuzziness', h.fuzziness) + kv('rank_constant', h.rank_constant) +
+      kv('legs', h.legs) + kv('per_leg_limit', h.per_leg_limit);
+    if (h.tokens_dropped) body += kv('tokens_dropped', h.tokens_dropped);
+    if (h.threads != null) body += kv('threads', h.threads);
+    panelBody.innerHTML = body;
+  }
+
+  document.getElementById('go').onclick = () => { activeRelevant = null; run(); };
+  qInput.addEventListener('keydown', e => { if (e.key === 'Enter') { activeRelevant = null; run(); } });
+
+  (async () => { await loadConfig(); await loadExamples(); })();
+</script>
+</body>
+</html>
