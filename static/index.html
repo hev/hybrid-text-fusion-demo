@@ -46,6 +46,7 @@
     position:sticky;top:20px}
   .panel h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
   .panel .legs{font-size:12.5px;color:var(--muted);margin:10px 0 12px;line-height:1.5}
+  .panel .cap{font-size:11px;color:var(--muted);margin:0 0 7px;text-transform:uppercase;letter-spacing:.05em}
   .kv{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
   .kv:last-child{border-bottom:0}
   .kv span:first-child{color:var(--muted)}
@@ -221,7 +222,8 @@
     panel.style.display = '';
     const kv = (k, v) => '<div class="kv"><span>' + k + '</span><span>' + esc(String(v)) + '</span></div>';
     const fuzzy = (h.legs || 1) - 1;
-    let body = '<div>' + (h.tokens || []).map(t => '<span class="tok">' + esc(t) + '</span>').join('') + '</div>';
+    let body = '<div class="cap">tokens · <a href="https://turbopuffer.com/docs/fts#tokenizers" target="_blank" rel="noopener">Turbopuffer tokenizer</a></div>';
+    body += '<div>' + (h.tokens || []).map(t => '<span class="tok">' + esc(t) + '</span>').join('') + '</div>';
     body += '<div class="legs">' + h.legs + ' legs sent upstream: <b>1 BM25</b> over the full query + <b>' +
       fuzzy + ' fuzzy</b> (one per token), fused by RRF.</div>';
     if (tookMs != null) body += '<div class="legs"><span class="lat">⚡ ' + esc(String(tookMs)) +

@@ -105,9 +105,10 @@ deploys with working examples without re-running `ingest.py`.
   gzip-compresses large write bodies and the gateway does not yet decode them,
   so bulk ingest uses uncompressed JSON.)
 - **Query.** The UI posts `rank_by: ["content", "HybridText", "<your query>"]`.
-  The gateway tokenizes the input (UAX-29 word boundaries, lowercased, ≤15
-  tokens), builds the BM25 + per-token fuzzy legs, and returns the fused `rows`
-  plus a `hybrid` echo describing the expansion.
+  The gateway [tokenizes the input](https://turbopuffer.com/docs/fts#tokenizers)
+  (UAX-29 word boundaries, lowercased, ≤15 tokens), builds the BM25 + per-token
+  fuzzy legs, and returns the fused `rows` plus a `hybrid` echo describing the
+  expansion.
 - **Typos.** Every HybridText leg ranks by BM25 over the full query, so when at
   least one token matches a stored term exactly, that anchors relevance and the
   fuzzy legs rescue the misspelled tokens. When *no* token matches exactly (a
