@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import math
 import re
+import time
 
 import httpx
 from datasets import load_dataset
@@ -82,9 +83,22 @@ def fused_rows(body: dict) -> list[dict]:
 def _multi_query(client: httpx.Client, legs: list[dict]) -> list[dict]:
     url = f"{config.GATEWAY_URL}/v2/namespaces/{config.NAMESPACE}/query?stainless_overload=multiQuery"
     body = {"queries": legs, "rerank_by": ["RRF", {"rank_constant": RANK_CONSTANT}]}
-    resp = client.post(url, json=body)
-    resp.raise_for_status()
-    return fused_rows(resp.json())
+    # Retry transient gateway/edge hiccups so a long run doesn't abort on one
+    # 502/503/504 or a dropped connection.
+    for attempt in range(4):
+        try:
+            resp = client.post(url, json=body)
+        except httpx.HTTPError:
+            if attempt == 3:
+                raise
+            time.sleep(0.5 * (attempt + 1))
+            continue
+        if resp.status_code in (502, 503, 504) and attempt < 3:
+            time.sleep(0.5 * (attempt + 1))
+            continue
+        resp.raise_for_status()
+        return fused_rows(resp.json())
+    raise RuntimeError("unreachable")
 
 
 def _fuzzy(token: str) -> list:
