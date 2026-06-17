@@ -36,7 +36,7 @@ from datasets import load_dataset
 import config
 
 HERE = Path(__file__).resolve().parent
-QUERIES_OUT = HERE / "queries.json"
+QUERIES_OUT = HERE / "static" / "queries.json"
 
 BATCH_SIZE = 256
 SAMPLE_QUERIES = 40

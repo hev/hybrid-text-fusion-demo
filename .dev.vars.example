@@ -1,0 +1,4 @@
+# Copy to `.dev.vars` for local `wrangler dev`. Never commit `.dev.vars`.
+# The bearer token the gateway accepts (in deriveFromStore mode, your upstream
+# Turbopuffer API key). In production this is set with `wrangler secret put`.
+LAYER_API_KEY=

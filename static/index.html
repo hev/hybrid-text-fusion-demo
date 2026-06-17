@@ -16,7 +16,7 @@
   a:hover{text-decoration:underline}
   code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
   .wrap{max-width:1060px;margin:0 auto;padding:34px 20px 90px}
-  header h1{font-size:22px;margin:0 0 6px;font-weight:650}
+  header h1{font-size:22px;margin:0 0 6px;font-weight:650;padding-right:34px}
   header p{color:var(--muted);margin:0 0 22px;max-width:700px}
   .search{display:flex;gap:8px}
   .search input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--text);
@@ -54,17 +54,31 @@
     padding:2px 7px;margin:0 4px 4px 0;font-family:ui-monospace,monospace;font-size:12px}
   .empty{color:var(--muted);padding:26px 0}
   .err{color:#fca5a5}
+  .lat{color:var(--good);font-weight:600;font-family:ui-monospace,monospace}
+  .docs{margin-top:10px;font-size:13px}
+  header{position:relative}
+  .gh{position:absolute;top:1px;right:0;display:inline-flex;align-items:center;gap:7px;
+    color:var(--muted);font-size:13px;font-weight:500}
+  .gh:hover{color:var(--text);text-decoration:none}
+  .gh svg{width:24px;height:24px;fill:currentColor;display:block}
+  @media(max-width:560px){.gh .ghtxt{display:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>SciFact &middot; <code>hybrid_text_fusion</code> on Layer</h1>
+    <a class="gh" href="https://github.com/hev/hybrid-text-fusion-demo" target="_blank" rel="noopener"
+       aria-label="View source on GitHub" title="View source on GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+      <span class="ghtxt">GitHub</span>
+    </a>
+    <h1>SciFact &middot; <a href="https://hevlayer.com/docs/api/query/#hybrid-text-fusion" target="_blank" rel="noopener"><code>hybrid_text_fusion</code></a> on Layer</h1>
     <p>One query string fans out into a full-input <b>BM25</b> leg plus one
        <b>fuzzy</b> leg per token, fused by <b>reciprocal rank fusion</b> in the
        Layer gateway — no embeddings. ~5,000 scientific abstracts from
        <a href="https://huggingface.co/datasets/BeIR/scifact" target="_blank" rel="noopener">BEIR/SciFact</a>.
        Try a query <i>with a typo</i>: the fuzzy legs still catch it.</p>
+    <p class="docs">→ <a href="https://hevlayer.com/docs/api/query/#hybrid-text-fusion" target="_blank" rel="noopener">How <code>hybrid_text_fusion</code> works (Layer docs)</a></p>
   </header>
 
   <div class="search">
@@ -149,6 +163,7 @@
     results.innerHTML = '<div class="empty">Searching…</div>';
     panel.style.display = 'none';
     let data;
+    const t0 = performance.now();
     try {
       const r = await fetch('/api/search', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -159,6 +174,7 @@
     } catch (e) {
       results.innerHTML = '<div class="empty err">' + esc(String(e)) + '</div>'; return;
     }
+    data.round_trip_ms = Math.round(performance.now() - t0);
     render(data);
   }
 
@@ -173,7 +189,12 @@
       meta += ` · ${hit}/${activeRelevant.size} known-relevant abstracts surfaced in top ${rows.length}`;
     }
 
-    let html = '<p class="meta">' + esc(meta) + '</p>';
+    let html = '<p class="meta">' + esc(meta);
+    if (data.took_ms != null) {
+      html += ' &middot; <span class="lat">⚡ ' + esc(String(data.took_ms)) + ' ms</span> gateway query';
+      if (data.round_trip_ms != null) html += ' &middot; ' + esc(String(data.round_trip_ms)) + ' ms round-trip';
+    }
+    html += '</p>';
     if (!rows.length) html += '<div class="empty">No matches.</div>';
     rows.forEach(r => {
       const rel = activeRelevant && activeRelevant.has(String(r.id));
@@ -192,10 +213,10 @@
         '</div>';
     });
     results.innerHTML = html;
-    renderPanel(h);
+    renderPanel(h, data.took_ms);
   }
 
-  function renderPanel(h) {
+  function renderPanel(h, tookMs) {
     if (!h) { panel.style.display = 'none'; return; }
     panel.style.display = '';
     const kv = (k, v) => '<div class="kv"><span>' + k + '</span><span>' + esc(String(v)) + '</span></div>';
@@ -203,6 +224,8 @@
     let body = '<div>' + (h.tokens || []).map(t => '<span class="tok">' + esc(t) + '</span>').join('') + '</div>';
     body += '<div class="legs">' + h.legs + ' legs sent upstream: <b>1 BM25</b> over the full query + <b>' +
       fuzzy + ' fuzzy</b> (one per token), fused by RRF.</div>';
+    if (tookMs != null) body += '<div class="legs"><span class="lat">⚡ ' + esc(String(tookMs)) +
+      ' ms</span> — all ' + h.legs + ' legs tokenized, expanded, fused &amp; returned (edge-measured).</div>';
     body += kv('fuzziness', h.fuzziness) + kv('rank_constant', h.rank_constant) +
       kv('legs', h.legs) + kv('per_leg_limit', h.per_leg_limit);
     if (h.tokens_dropped) body += kv('tokens_dropped', h.tokens_dropped);

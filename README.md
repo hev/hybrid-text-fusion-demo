@@ -10,6 +10,10 @@ full-input BM25 leg plus one fuzzy leg per token**, and fuses the legs with
 variants without losing BM25's relevance signal. No embeddings, no GPU, no
 vector index: `HybridText` is purely lexical.
 
+**Live demo:** <https://hybrid-text.hevlayer.com> — every search shows its
+gateway round-trip time, so you can watch one query string fan out into a fused
+multi-leg search and come back in milliseconds.
+
 SciFact ships real queries with relevance judgments, so the UI can show
 *provable* relevance: pick a bundled query and the known-relevant abstracts are
 flagged ✓ in the results.
@@ -26,40 +30,18 @@ corpus (HF SciFact) ──ingest.py──► Layer gateway ──► Turbopuffer
 
 | File | Role |
 |------|------|
-| `ingest.py` | Download SciFact, declare a BM25 + fuzzy schema, bulk-upsert every abstract through the gateway, and write `queries.json`. |
-| `server.py` | FastAPI app: serves the UI and proxies search to the gateway (the API key stays server-side). |
-| `static/index.html` | Single-page search UI with a live **fusion inspector** (tokens, legs, fuzziness, RRF constant). |
+| `ingest.py` | Download SciFact, declare a BM25 + fuzzy schema, bulk-upsert every abstract through the gateway, and write `static/queries.json`. |
+| `server.py` | FastAPI app for local dev: serves the UI and proxies search to the gateway (the API key stays server-side). |
+| `src/worker.js` | Cloudflare Worker: same UI + search proxy as `server.py`, for the live deploy. The API key is a Worker secret. |
+| `wrangler.jsonc` | Worker config — static assets, gateway vars, and the `hybrid-text.hevlayer.com` custom domain. |
+| `static/index.html` | Single-page search UI with a live **fusion inspector** (tokens, legs, fuzziness, RRF constant) and the gateway query time. |
 | `eval.py` | Score nDCG@10 / recall@10 over SciFact's qrels — the primary expansion vs the empty-result fallback. |
 | `config.py` | Env / `.env` configuration. |
 
 ## Prerequisites
 
-A **running Layer gateway** pointed at your Turbopuffer. The gateway resolves
-its upstream endpoint + API key from a Kubernetes `VectorStore` resource, so it
-needs a cluster context with a `VectorStore` (and its credential `Secret`).
-Minimal shape:
-
-```yaml
-apiVersion: hevlayer.com/v1alpha1
-kind: VectorStore
-metadata: { name: default }
-spec:
-  kind: Turbopuffer
-  default: true
-  endpoint: { url: "https://api.turbopuffer.com" }
-  credential: { secretRef: { name: turbopuffer-creds, key: api-key } }
-  # inboundAuth defaults to deriveFromStore: the bearer token the gateway
-  # accepts is your upstream Turbopuffer API key.
----
-apiVersion: v1
-kind: Secret
-metadata: { name: turbopuffer-creds }
-stringData: { api-key: "<your-turbopuffer-api-key>" }
-```
-
-Aerospike, S3, and PostgreSQL are **not** required for this demo — they're
-optional/degradable for upsert + query. See the gateway's own docs for the full
-boot story.
+A **running Layer gateway** pointed at your Turbopuffer. See
+[hevlayer.com](https://hevlayer.com) to set one up.
 
 ## Setup
 
@@ -90,6 +72,29 @@ python server.py              # http://localhost:8000
 `ingest.py` waits for the index to become searchable before exiting, so once it
 prints "Index is searchable" the UI is ready.
 
+## Deploy (Cloudflare Workers)
+
+The live demo runs as a Cloudflare Worker (`src/worker.js`) that mirrors
+`server.py`: it serves the UI from `static/` and proxies `/api/search` to the
+gateway, keeping the API key server-side. The gateway URL/namespace are plain
+`vars` in `wrangler.jsonc`; the bearer token is a Worker **secret**.
+
+```bash
+npm install                          # installs wrangler locally
+
+# One-time: set the gateway bearer token as a secret (never committed)
+wrangler secret put LAYER_API_KEY    # paste the token at the prompt
+
+wrangler dev                         # local preview (reads .dev.vars)
+wrangler deploy                      # ship to hybrid-text.hevlayer.com
+```
+
+The custom domain in `wrangler.jsonc` provisions its own DNS record and
+certificate on first deploy — the `hevlayer.com` zone just has to live in the
+same Cloudflare account. The example chips ship in `static/queries.json` (a
+committed snapshot of SciFact's test queries + qrels), so a clean checkout
+deploys with working examples without re-running `ingest.py`.
+
 ## How it works
 
 - **Ingest.** `ingest.py` posts the Turbopuffer-compatible `upsert_columns`
@@ -111,6 +116,9 @@ prints "Index is searchable" the UI is ready.
   many tokens each document fuzzy-matches.
 - **Fusion inspector.** The right-hand panel renders the `hybrid` echo so you
   can watch one query string become N legs and see the RRF parameters.
+- **Query time.** The proxy measures the gateway round-trip and returns it as
+  `took_ms`; the UI shows it next to the result count and in the inspector, so
+  the cost of fanning out and re-fusing N legs is visible on every search.
 
 ## License
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 from pathlib import Path
 
 import httpx
@@ -24,7 +25,7 @@ import config
 
 HERE = Path(__file__).resolve().parent
 STATIC = HERE / "static"
-QUERIES = HERE / "queries.json"
+QUERIES = STATIC / "queries.json"
 
 app = FastAPI(title="SciFact · hybrid_text_fusion on Layer")
 
@@ -73,14 +74,18 @@ async def search(req: SearchRequest) -> dict:
     last_detail = "unknown error"
     async with httpx.AsyncClient(timeout=30) as client:
         for attempt in range(3):
+            t0 = time.perf_counter()
             try:
                 resp = await client.post(url, json=body, headers=config.auth_headers())
             except httpx.HTTPError as exc:
                 last_detail = f"gateway unreachable: {exc}"
             else:
+                took_ms = round((time.perf_counter() - t0) * 1000)
                 if resp.status_code == 200:
                     data = resp.json()
-                    return {"rows": data.get("rows", []), "hybrid": data.get("hybrid")}
+                    # took_ms: the gateway round-trip — how fast HybridText fuses
+                    # the BM25 + per-token fuzzy legs. The UI surfaces it.
+                    return {"rows": data.get("rows", []), "hybrid": data.get("hybrid"), "took_ms": took_ms}
                 if resp.status_code not in transient:
                     raise HTTPException(status_code=resp.status_code, detail=resp.text)
                 last_detail = resp.text

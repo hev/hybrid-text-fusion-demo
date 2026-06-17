@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hybrid-text-fusion-demo",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-23",
+  // Serve the single-page UI (and queries.json) straight from ./static.
+  // With run_worker_first unset, assets are served first and the Worker only
+  // runs for paths with no matching asset — i.e. the /api/* routes below.
+  "assets": {
+    "directory": "./static"
+  },
+  "observability": { "enabled": true },
+  // Non-secret config. LAYER_API_KEY is a secret: `wrangler secret put LAYER_API_KEY`.
+  "vars": {
+    "LAYER_GATEWAY_URL": "https://aws-us-east-1.hevlayer.com",
+    "LAYER_NAMESPACE": "scifact-demo",
+    "LAYER_SEARCH_FIELD": "content"
+  },
+  // Live demo hostname. The zone hevlayer.com must already exist in this account;
+  // Cloudflare provisions the DNS record + certificate automatically on deploy.
+  "routes": [
+    { "pattern": "hybrid-text.hevlayer.com", "custom_domain": true }
+  ]
+}
