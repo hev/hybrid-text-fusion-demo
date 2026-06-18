@@ -1,13 +1,6 @@
 {
   "examples": [
     {
-      "id": "1",
-      "text": "0-dimensional biomaterials show inductive properties.",
-      "relevant_doc_ids": [
-        "31715818"
-      ]
-    },
-    {
       "id": "3",
       "text": "1,000 genomes project enables mapping of genetic sequence variation consisting of rare variants with larger penetrance effects than common variants.",
       "relevant_doc_ids": [
@@ -19,21 +12,6 @@
       "text": "1/2000 in UK have abnormal PrP positivity.",
       "relevant_doc_ids": [
         "13734012"
-      ]
-    },
-    {
-      "id": "13",
-      "text": "5% of perinatal mortality is due to low birth weight.",
-      "relevant_doc_ids": [
-        "1606628"
-      ]
-    },
-    {
-      "id": "36",
-      "text": "A deficiency of vitamin B12 increases blood levels of homocysteine.",
-      "relevant_doc_ids": [
-        "5152028",
-        "11705328"
       ]
     },
     {
@@ -76,13 +54,6 @@
       "text": "ALDH1 expression is associated with poorer prognosis in breast cancer.",
       "relevant_doc_ids": [
         "45638119"
-      ]
-    },
-    {
-      "id": "54",
-      "text": "AMP-activated protein kinase (AMPK) activation increases inflammation-related fibrosis in the lungs.",
-      "relevant_doc_ids": [
-        "49556906"
       ]
     },
     {
@@ -129,13 +100,6 @@
       ]
     },
     {
-      "id": "99",
-      "text": "Alizarin forms hydrogen bonds with residues involved in PGAM1 substrate binding.",
-      "relevant_doc_ids": [
-        "18810195"
-      ]
-    },
-    {
       "id": "100",
       "text": "All hematopoietic stem cells segregate their chromosomes randomly.",
       "relevant_doc_ids": [
@@ -150,13 +114,6 @@
       ]
     },
     {
-      "id": "115",
-      "text": "Anthrax spores can be disposed of easily after they are dispersed.",
-      "relevant_doc_ids": [
-        "33872649"
-      ]
-    },
-    {
       "id": "118",
       "text": "Antibiotic induced alterations in the gut microbiome reduce resistance against Clostridium difficile",
       "relevant_doc_ids": [
@@ -168,13 +125,6 @@
       "text": "Antiretroviral therapy reduces rates of tuberculosis across a broad range of CD4 strata.",
       "relevant_doc_ids": [
         "4883040"
-      ]
-    },
-    {
-      "id": "127",
-      "text": "Arginine 90 in p150n is important for interaction with EB1.",
-      "relevant_doc_ids": [
-        "21598000"
       ]
     },
     {
@@ -196,13 +146,6 @@
       "text": "Articles published in open access format are more likely to be cited than traditional journals.",
       "relevant_doc_ids": [
         "27768226"
-      ]
-    },
-    {
-      "id": "132",
-      "text": "Aspirin inhibits the production of PGE2.",
-      "relevant_doc_ids": [
-        "7975937"
       ]
     },
     {
@@ -288,6 +231,62 @@
       "text": "Blocking the interaction between TDP-43 and respiratory complex I proteins ND3 and ND6 leads to increased TDP-43-induced neuronal loss.",
       "relevant_doc_ids": [
         "16966326"
+      ]
+    },
+    {
+      "id": "183",
+      "text": "Bone marrow cells contribute to adult macrophage compartments.",
+      "relevant_doc_ids": [
+        "12827098"
+      ]
+    },
+    {
+      "id": "185",
+      "text": "Breast cancer development is determined exclusively by genetic factors.",
+      "relevant_doc_ids": [
+        "18340282"
+      ]
+    },
+    {
+      "id": "198",
+      "text": "CCL19 is absent within dLNs.",
+      "relevant_doc_ids": [
+        "2177022"
+      ]
+    },
+    {
+      "id": "208",
+      "text": "CHEK2 is not associated with breast cancer.",
+      "relevant_doc_ids": [
+        "13519661"
+      ]
+    },
+    {
+      "id": "213",
+      "text": "CRP is not predictive of postoperative mortality following Coronary Artery Bypass Graft (CABG) surgery.",
+      "relevant_doc_ids": [
+        "13625993"
+      ]
+    },
+    {
+      "id": "216",
+      "text": "CX3CR1 on the Th2 cells impairs T cell survival",
+      "relevant_doc_ids": [
+        "21366394"
+      ]
+    },
+    {
+      "id": "217",
+      "text": "CX3CR1 on the Th2 cells promotes T cell survival",
+      "relevant_doc_ids": [
+        "21366394"
+      ]
+    },
+    {
+      "id": "218",
+      "text": "CX3CR1 on the Th2 cells promotes airway inflammation.",
+      "relevant_doc_ids": [
+        "21366394"
       ]
     }
   ]
