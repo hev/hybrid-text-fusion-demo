@@ -1,0 +1,34 @@
+# Agent — E9 frontier-agent baseline for /search (LYR-99): the frontier arm.
+# A model bound to the demo's SciFact namespace with a wall-clock budget,
+# invoked via POST /v2/agents/scifact-sol/query {"query": q, "top_k": 10}.
+#
+# No `fallback`: a deadline hit must show as a deadline hit, not as another
+# model's answer. deadlineMs is the committed 10 s rung; the E9 ladder patches
+# it per run (3000 / 10000 / 30000) — see deploy/README.md.
+#
+# scifact-demo has no `embed:` attribute yet, so rankBy: auto legs run lexical
+# (HybridText). The OpenRouter credential is the existing chart-openrouter
+# Secret in namespace layer (key credential); spend bills to it.
+apiVersion: hevlayer.com/v1alpha1
+kind: Agent
+metadata:
+  name: scifact-sol
+  namespace: layer
+spec:
+  model:
+    provider: openrouter
+    name: openai/gpt-5.6-sol
+    apiKeySecretRef:
+      name: chart-openrouter
+      key: credential
+  budget:
+    deadlineMs: 10000
+    onDeadline: bestEffort
+  indices: [scifact-demo]
+  retrieval:
+    fanout: 8
+    recallDepth: 50
+    rankBy: auto
+  output:
+    provenance: true
+    trace: true

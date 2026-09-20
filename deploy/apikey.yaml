@@ -1,0 +1,30 @@
+# ApiKey — the declarative entitlement for the E9 agent runs (LYR-99).
+#
+# NOT applied on the shared demo cluster. Applying an ApiKey is a mint (the
+# operator generates a token and writes it to a Secret), and the shared gateway
+# authenticates with deriveFromStore: the bearer is the backing-store key, not a
+# minted key. Per docs/api/agents § Auth only a *minted* key needs the
+# `agent.<name>` entitlement. The cluster also cannot mint CRD-authored keys
+# today (chart/chart-notes sits Pending with PepperMissing). This file records
+# what a minted demo key would need; see deploy/README.md.
+#
+# `agent.<name>` governs who may invoke, not what the agent reads — the reads
+# run under the vectorstore grant, scoped to scifact-demo.
+apiVersion: hevlayer.com/v1alpha1
+kind: ApiKey
+metadata:
+  name: scifact-demo
+  namespace: layer
+spec:
+  owner: hybrid-text-fusion-demo
+  description: SciFact demo — HybridText queries + E9 Sol/Luna agent invocation over scifact-demo
+  entitlements:
+    vectorstore.turbopuffer-default:
+      scopes: [read, write]
+      namespaces: ["scifact-demo"]
+    # Explicit read scope: the gateway rejects the bare `{}` form (hev/layer#146).
+    agent.scifact-sol:
+      scopes: [read]
+    agent.scifact-luna:
+      scopes: [read]
+  expiresAfter: never
